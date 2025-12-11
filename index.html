@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة المربعات الغامضة - لغتي ثاني متوسط</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        /* لوحة النتائج */
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .team {
+            text-align: center;
+        }
+
+        .team h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #f1c40f;
+        }
+
+        .score {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 5px 0;
+        }
+
+        /* شبكة المربعات */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        .box {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            height: 120px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 5px 0 #1c5980;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 0 #1c5980;
+        }
+
+        .box.opened {
+            background: #7f8c8d;
+            box-shadow: none;
+            transform: translateY(5px);
+            cursor: default;
+            color: #bdc3c7;
+        }
+
+        /* النافذة المنبثقة للسؤال */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            color: #333;
+            padding: 40px 30px 30px 30px; /* زيادة الحشوة العلوية للمؤقت */
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+            animation: popIn 0.4s ease;
+            border: 5px solid #f1c40f;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* تنسيق المؤقت الجديد */
+        .timer-circle {
+            width: 70px;
+            height: 70px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            position: absolute;
+            top: -35px; /* يظهر نصفه خارج النافذة */
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: background 0.3s;
+        }
+
+        .question-text {
+            font-size: 1.8rem;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .answer-text {
+            font-size: 1.5rem;
+            color: #27ae60;
+            margin: 20px 0;
+            display: none;
+            padding: 10px;
+            background: #e8f8f5;
+            border-radius: 10px;
+            border: 2px dashed #27ae60;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            margin: 5px;
+            transition: 0.2s;
+        }
+
+        .btn-show { background: #3498db; color: white; }
+        .btn-show:hover { background: #2980b9; }
+
+        .btn-correct { background: #27ae60; color: white; }
+        .btn-correct:hover { background: #219150; }
+
+        .btn-close { background: #95a5a6; color: white; }
+        
+    </style>
+</head>
+<body>
+
+    <h1>📦 المربعات الغامضة - لغتي (2م) 📦</h1>
+
+    <div class="scoreboard">
+        <div class="team">
+            <h2>الفريق الأول</h2>
+            <div class="score" id="scoreA">0</div>
+        </div>
+        <div class="team">
+            <h2>الفريق الثاني</h2>
+            <div class="score" id="scoreB">0</div>
+        </div>
+    </div>
+
+    <div class="grid-container" id="grid">
+        </div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="timer-circle" id="timerDisplay">30</div>
+            
+            <h2 style="color:#e67e22" id="modalTitle">سؤال</h2>
+            <div class="question-text" id="qText">نص السؤال</div>
+            
+            <button class="btn btn-show" onclick="showAnswer()">عرض الإجابة</button>
+            <div class="answer-text" id="aText">الإجابة</div>
+
+            <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+            
+            <p>من الفائز؟</p>
+            <button class="btn btn-correct" onclick="addPoint('A')">نقطة للفريق 1</button>
+            <button class="btn btn-correct" onclick="addPoint('B')">نقطة للفريق 2</button>
+            <button class="btn btn-close" onclick="closeModal()">إغلاق</button>
+        </div>
+    </div>
+
+    <script>
+        // بنك الأسئلة
+        const questions = [
+            { q: "ما هي علامة رفع الأسماء الخمسة؟", a: "الواو" },
+            { q: "حدد الحال في الجملة: (جاء الطالبُ مسرعاً)", a: "مسرعاً" },
+            { q: "(يا أيها الطلاب اجتهدوا). ما نوع المنادى؟", a: "نكرة مقصودة (أي)" },
+            { q: "مفاجأة! 🎉\nحصلتم على 5 نقاط مجانية!", a: "مبروك!", type: "gift" },
+            { q: "كيف تُرسم الهمزة المتوسطة إذا كانت مكسورة؟", a: "على الياء (النبرة)" },
+            { q: "ما هو وزن كلمة (استغفار)؟", a: "استفعال" },
+            { q: "حول الفعل (شَرِبَ) إلى مبني للمجهول.", a: "شُرِبَ" },
+            { q: "ما ضد كلمة (الإيثار)؟", a: "الأثرة (أو الأنانية)" },
+            { q: "حدد التمييز في الجملة: (اشتريتُ عشرينَ كتاباً)", a: "كتاباً" },
+            { q: "مفاجأة! 💣\nخسرتم الدور (انتقل للسؤال التالي)", a: "حظاً أوفر", type: "bomb" },
+            { q: "صغ اسم الفاعل من الفعل (قال).", a: "قائل" },
+            { q: "أعرب كلمة (أخوك) في جملة: (جاء أخوك).", a: "فاعل مرفوع بالواو" },
+            { q: "(لا تهملْ دروسك). ما نوع (لا) هنا؟", a: "لا الناهية (جازمة)" },
+            { q: "جمع تكسير لكلمة (عالم).", a: "علماء" },
+            { q: "سؤال سرعة: عدد حروف الجر الأصلية المشهورة.", a: "من، إلى، عن، على، في، الباء، الكاف، اللام" },
+            { q: "هدية! 🎉\nيمكنك حذف إجابة خاطئة لفريقك.", a: "استغل الفرصة!", type: "gift" }
+        ];
+
+        let scores = { A: 0, B: 0 };
+        let currentBox = null;
+        
+        // متغيرات المؤقت
+        let timerInterval;
+        const TIME_LIMIT = 30; // عدد الثواني
+        const timerDisplay = document.getElementById('timerDisplay');
+
+        const grid = document.getElementById('grid');
+        const modal = document.getElementById('modal');
+        const qText = document.getElementById('qText');
+        const aText = document.getElementById('aText');
+        const modalTitle = document.getElementById('modalTitle');
+        const scoreAEl = document.getElementById('scoreA');
+        const scoreBEl = document.getElementById('scoreB');
+
+        function initGrid() {
+            grid.innerHTML = '';
+            questions.forEach((item, index) => {
+                const box = document.createElement('div');
+                box.className = 'box';
+                box.textContent = index + 1;
+                box.onclick = () => openBox(index, box);
+                grid.appendChild(box);
+            });
+        }
+
+        function openBox(index, boxElement) {
+            if (boxElement.classList.contains('opened')) return;
+
+            currentBox = boxElement;
+            const data = questions[index];
+            
+            modalTitle.innerText = data.type === 'gift' ? 'مفاجأة!' : (data.type === 'bomb' ? 'تنبيه!' : سؤال رقم ${index + 1});
+            qText.innerText = data.q;
+            aText.innerText = data.a;
+            aText.style.display = 'none';
+            
+            modal.style.display = 'flex';
+
+            // تشغيل المؤقت إذا لم تكن مفاجأة
+            if (!data.type) {
+                timerDisplay.style.display = 'flex';
+                startTimer();
+            } else {
+                timerDisplay.style.display = 'none'; // إخفاء المؤقت في الهدايا
+            }
+        }
+
+        function startTimer() {
+            let timeLeft = TIME_LIMIT;
+            timerDisplay.innerText = timeLeft;
+            timerDisplay.style.background = '#3498db'; // اللون الأزرق الطبيعي
+
+            clearInterval(timerInterval); // تنظيف أي مؤقت سابق
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.innerText = timeLeft;
+
+                // تحذير عندما يتبقى 10 ثواني
+                if (timeLeft <= 10) {
+                    timerDisplay.style.background = '#e74c3c'; // أحمر
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.innerText = "انتهى";
+                    // يمكنك هنا تشغيل صوت إنذار إذا رغبت
+                }
+            }, 1000);
+        }
+
+        function showAnswer() {
+            aText.style.display = 'block';
+            clearInterval(timerInterval); // إيقاف المؤقت عند عرض الإجابة
+        }
+
+        function addPoint(team) {
+            const points = qText.innerText.includes('5 نقاط') ? 5 : 1;
+            if (team === 'A') scores.A += points;
+            else scores.B += points;
+            updateScoreboard();
+            closeModal(true);
+        }
+
+        function updateScoreboard() {
+            scoreAEl.innerText = scores.A;
+            scoreBEl.innerText = scores.B;
+        }
+
+        function closeModal(markAsOpened = false) {
+            modal.style.display = 'none';
+            clearInterval(timerInterval); // التأكد من إيقاف المؤقت
+            
+            if (markAsOpened && currentBox) {
+                currentBox.classList.add('opened');
+                currentBox.innerHTML = '✔'; 
+            }
+        }
+
+        initGrid();
+
+    </script>
+</body>
+</html>
